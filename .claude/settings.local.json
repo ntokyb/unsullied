@@ -19,7 +19,13 @@
       "Bash(npm list:*)",
       "Bash(npm install:*)",
       "Bash(node -e \":*)",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:9999)"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:9999)",
+      "Bash(node -e \"require\\(''./src/services/billableService.js''\\); console.log\\(''billableService OK''\\); require\\(''./src/services/quoteService.js''\\); console.log\\(''quoteService OK''\\);\")",
+      "Read(//mnt/c/projects/codist/unsullied/**)",
+      "Bash(node -e \"require\\(''./src/services/billableService.js''\\); console.log\\(''billableService OK''\\);\")",
+      "Bash(node -e \"const fs = require\\(''fs''\\); const code = fs.readFileSync\\(''C:\\\\\\\\projects\\\\\\\\codist\\\\\\\\unsullied\\\\\\\\backend\\\\\\\\src\\\\\\\\services\\\\\\\\billableService.js'', ''utf8''\\); new Function\\(code\\); console.log\\(''Syntax OK''\\);\")",
+      "Bash(node -c \"C:/projects/codist/unsullied/backend/src/services/billableService.js\")",
+      "Bash(node -e \"require\\(''fs''\\).readFileSync\\(''C:/projects/codist/unsullied/backend/src/services/billableService.js'',''utf8''\\)\")"
     ]
   }
 }

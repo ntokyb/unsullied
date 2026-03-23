@@ -25,7 +25,10 @@ class BillableService {
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(`Billable API ${method} ${path} failed: ${err.error || res.statusText}`);
+      throw new Error(
+        `Billable ${method} ${path} failed (${res.status}): ` +
+        (err.title || err.error || res.statusText)
+      );
     }
 
     const text = await res.text();
@@ -96,37 +99,42 @@ class BillableService {
 
     const lines = services.map(s => ({
       itemName: s.name,
-      description: `${s.category === 'pest-control' ? 'Pest Control' : 'Cleaning'} service`,
-      quantity: s.quantity,
-      unit: 'each',
+      description: s.category === 'pest-control'
+        ? 'Pest control treatment'
+        : 'Cleaning service',
+      quantity: Number(s.quantity) || 1,
+      unit: s.unit || 'each',
       unitPrice: parseFloat(s.unitPrice),
       vatCode: 'STANDARD',
       discountType: 'NONE',
       discountValue: 0
     }));
 
-    // Add call-out fee as a line item
-    lines.push({
-      itemName: 'Call-out fee',
-      description: 'Standard call-out fee',
-      quantity: 1,
-      unit: 'each',
-      unitPrice: parseFloat(callOutFee),
-      vatCode: 'STANDARD',
-      discountType: 'NONE',
-      discountValue: 0
-    });
+    // Add call-out fee as last line item
+    if (callOutFee && parseFloat(callOutFee) > 0) {
+      lines.push({
+        itemName: 'Call-out Fee',
+        description: 'Standard call-out fee',
+        quantity: 1,
+        unit: 'each',
+        unitPrice: parseFloat(callOutFee),
+        vatCode: 'STANDARD',
+        discountType: 'NONE',
+        discountValue: 0
+      });
+    }
 
     const servicePeriod = preferredDate
-      ? `${preferredDate}T00:00:00Z`
-      : new Date().toISOString();
+      ? new Date(preferredDate).toISOString()
+      : null;
 
     const quote = await this.request('POST', '/api/quotes', {
       clientId,
-      engagementTitle: title,
+      engagementTitle: title || null,
       validUntil: validUntil.toISOString(),
       servicePeriodFrom: servicePeriod,
       servicePeriodTo: servicePeriod,
+      poNumber: null,
       notes: specialInstructions || null,
       terms: 'Payment due within 7 days of invoice date.',
       lines

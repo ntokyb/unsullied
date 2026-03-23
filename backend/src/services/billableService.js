@@ -38,12 +38,36 @@ class BillableService {
   async findOrCreateClient({ name, email, phone, addressLine1, city, province, postalCode }) {
     // Search by email first
     const searchResult = await this.request('GET', `/api/clients?search=${encodeURIComponent(email)}`);
-
+  
     if (searchResult.items && searchResult.items.length > 0) {
-      console.log(`Billable: Found existing client ${searchResult.items[0].id} for ${email}`);
-      return searchResult.items[0].id;
+      const existing = searchResult.items[0];
+      console.log(`Billable: Found existing client ${existing.id} for ${email}`);
+  
+      // Update if name is wrong or was a placeholder
+      if (!existing.name || existing.name === 'Client Name' || existing.name !== name) {
+        try {
+          await this.request('PUT', `/api/clients/${existing.id}`, {
+            id: existing.id,
+            name: name || existing.name,
+            email: email,
+            phone: phone || existing.phone || null,
+            vatNumber: null,
+            registrationNumber: null,
+            addressLine1: addressLine1 || existing.address?.street || null,
+            city: city || existing.address?.city || null,
+            province: province || existing.address?.province || null,
+            postalCode: postalCode || existing.address?.postalCode || null,
+            country: 'South Africa'
+          });
+          console.log(`Billable: Updated client ${existing.id} name to ${name}`);
+        } catch (updateErr) {
+          console.error('Could not update existing client:', updateErr.message);
+        }
+      }
+  
+      return existing.id;
     }
-
+  
     // Create new client
     const client = await this.request('POST', '/api/clients', {
       name,
@@ -58,7 +82,7 @@ class BillableService {
       postalCode: postalCode || null,
       country: 'South Africa'
     });
-
+  
     console.log(`Billable: Created new client ${client.id} for ${email}`);
     return client.id;
   }

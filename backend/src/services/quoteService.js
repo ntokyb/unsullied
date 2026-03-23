@@ -256,7 +256,7 @@ class QuoteService {
       province: addr.province,
       postalCode: addr.postalCode
     });
-
+  
     // 2. Create quote in Billable
     const serviceNames = quoteData.services.map(s => s.name).join(', ');
     const billableQuote = await billableService.createQuote(clientId, {
@@ -266,39 +266,29 @@ class QuoteService {
       services: quoteData.services,
       callOutFee: quoteData.callOutFee || CALL_OUT_FEE
     });
-
-    // 3. Send quote to client
-    await billableService.sendQuote(billableQuote.id);
-
-    // 4. Create invoice
-    const invoice = await billableService.createInvoice(clientId, {
-      services: quoteData.services,
-      callOutFee: quoteData.callOutFee || CALL_OUT_FEE,
-      reference: `${billableQuote.quoteNumber} — ${quoteData.customerName}`,
-      notes: quoteData.specialInstructions
-    });
-
-    // 5. Get PayFast payment link
-    let paymentLink = null;
+  
+    // 3. Send quote to client email
     try {
-      paymentLink = await billableService.sendInvoiceAndGetPaymentLink(invoice.id);
-    } catch (paymentError) {
-      console.error('Could not get PayFast link:', paymentError.message);
+      await billableService.sendQuote(billableQuote.id);
+      console.log(`Billable: Quote ${billableQuote.quoteNumber} sent to ${quoteData.customerEmail}`);
+    } catch (sendErr) {
+      // Non-fatal — quote was created, just not emailed
+      console.error('Could not send quote email:', sendErr.message);
     }
-
-    // 6. Update local quote with Billable IDs
+  
+    // 4. Update local quote with Billable IDs
+    // NOTE: Invoice is created later in Billable after job completion
     await Quote.update({
       billableClientId: clientId,
-      billableQuoteId: billableQuote.id,
-      billableInvoiceId: invoice.id
+      billableQuoteId: billableQuote.id
     }, { where: { id: quote.id } });
-
+  
     return {
       clientId,
       quoteId: billableQuote.id,
       quoteNumber: billableQuote.quoteNumber,
-      invoiceId: invoice.id,
-      paymentLink
+      invoiceId: null,
+      paymentLink: null
     };
   }
 

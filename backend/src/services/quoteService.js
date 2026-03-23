@@ -218,16 +218,43 @@ class QuoteService {
   /**
    * Sync a quote to Billable: create client, quote, invoice, and get payment link
    */
+  /**
+   * Parse a multi-line address into structured fields
+   * Expected format: street, suburb, city, postal code (each on a new line or comma-separated)
+   */
+  parseAddress(rawAddress) {
+    if (!rawAddress) return {};
+    // Split by newlines or commas, trim each part, remove empties
+    const parts = rawAddress.split(/[\n,]+/).map(p => p.trim()).filter(Boolean);
+
+    // Try to detect postal code (4-digit number at the end)
+    let postalCode = null;
+    const lastPart = parts[parts.length - 1];
+    if (lastPart && /^\d{4}$/.test(lastPart)) {
+      postalCode = parts.pop();
+    }
+
+    // Map remaining parts
+    const addressLine1 = parts[0] || null;  // street + number
+    const addressLine2 = parts[1] || null;  // suburb
+    const city = parts[2] || parts[1] || null;  // city (or suburb if only 2 parts)
+    // Default province to Gauteng since the business operates there
+    const province = 'Gauteng';
+
+    return { addressLine1, addressLine2, city, province, postalCode };
+  }
+
   async syncToBillable(quote, quoteData) {
-    // 1. Find or create client
+    // 1. Parse address and find or create client
+    const addr = this.parseAddress(quoteData.address);
     const clientId = await billableService.findOrCreateClient({
       name: quoteData.customerName,
       email: quoteData.customerEmail,
       phone: null,
-      addressLine1: quoteData.address,
-      city: null,
-      province: null,
-      postalCode: null
+      addressLine1: addr.addressLine1,
+      city: addr.city,
+      province: addr.province,
+      postalCode: addr.postalCode
     });
 
     // 2. Create quote in Billable

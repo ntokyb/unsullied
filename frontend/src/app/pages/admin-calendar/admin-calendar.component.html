@@ -1,0 +1,123 @@
+<div class="py-2">
+  <div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-8 flex items-center justify-between">
+      <div>
+        <h1 class="section-heading">Booking Calendar</h1>
+        <p class="mt-1 text-sm text-gray-500">View all upcoming booked jobs</p>
+      </div>
+      <button
+        (click)="loadBookings()"
+        [disabled]="isLoading"
+        class="btn-secondary flex items-center gap-2 text-sm py-2 px-4"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+        </svg>
+        Refresh
+      </button>
+    </div>
+
+    <!-- Error -->
+    <div *ngIf="error" class="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+      {{ error }}
+    </div>
+
+    <!-- Loading -->
+    <div *ngIf="isLoading" class="text-center py-16">
+      <svg class="animate-spin h-10 w-10 text-primary-600 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      <p class="mt-4 text-sm text-gray-500">Loading bookings...</p>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="!isLoading && groupedBookings.length === 0" class="text-center py-16">
+      <div class="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+        </svg>
+      </div>
+      <h3 class="text-sm font-semibold text-gray-900">No bookings</h3>
+      <p class="mt-1 text-sm text-gray-500">No upcoming bookings found.</p>
+    </div>
+
+    <!-- Calendar View -->
+    <div *ngIf="!isLoading && groupedBookings.length > 0" class="space-y-6">
+      <div *ngFor="let group of groupedBookings" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <!-- Date Header -->
+        <div class="bg-gray-900 px-6 py-4">
+          <h2 class="text-lg font-bold text-white">{{ group.formattedDate }}</h2>
+          <p class="text-gray-400 text-xs mt-0.5">
+            {{ group.quotes.length }} {{ group.quotes.length === 1 ? 'booking' : 'bookings' }}
+          </p>
+        </div>
+
+        <!-- Bookings List -->
+        <div class="divide-y divide-gray-100">
+          <div
+            *ngFor="let quote of group.quotes"
+            class="px-6 py-5 hover:bg-gray-50/50 transition-colors cursor-pointer"
+            (click)="viewQuoteDetails(quote)"
+          >
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+              <!-- Left -->
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 flex-wrap mb-2">
+                  <h3 class="text-base font-semibold text-gray-900">{{ quote.customerName }}</h3>
+                  <span [class]="getTimeBlockBadgeClass(quote.timeBlock)">
+                    {{ getTimeBlockLabel(quote.timeBlock) }}
+                  </span>
+                  <span
+                    *ngIf="quote.paymentStatus === 'paid'"
+                    class="badge bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20"
+                  >
+                    Paid
+                  </span>
+                </div>
+                <div class="flex items-center gap-1.5 mb-2">
+                  <p class="text-sm text-gray-500 truncate">{{ quote.address }}</p>
+                  <button
+                    (click)="viewLocationOnMap(quote.address); $event.stopPropagation()"
+                    class="text-primary-600 hover:text-primary-800 transition-colors flex-shrink-0"
+                  >
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                  </button>
+                </div>
+
+                <!-- Services -->
+                <div *ngIf="quote.services && quote.services.length > 0" class="flex flex-wrap gap-1.5 mb-2">
+                  <span
+                    *ngFor="let service of quote.services"
+                    class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-gray-100 text-gray-600"
+                  >
+                    {{ service.name }} (x{{ service.quantity }})
+                  </span>
+                </div>
+
+                <p *ngIf="quote.specialInstructions" class="text-xs text-gray-400 italic mt-1">
+                  {{ quote.specialInstructions }}
+                </p>
+              </div>
+
+              <!-- Right -->
+              <div class="flex flex-row sm:flex-col items-center sm:items-end justify-between gap-2">
+                <p class="text-xl font-bold text-gray-900 tabular-nums">R{{ quote.total.toFixed(2) }}</p>
+                <button
+                  class="text-xs text-primary-600 hover:text-primary-800 font-medium"
+                  (click)="viewQuoteDetails(quote); $event.stopPropagation()"
+                >
+                  View Details
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

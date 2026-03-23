@@ -148,8 +148,13 @@ class BillableService {
    * Send quote PDF to client via email
    */
   async sendQuote(quoteId) {
-    await this.request('POST', `/api/quotes/${quoteId}/send`);
-    console.log(`Billable: Sent quote ${quoteId} to client`);
+    const result = await this.request(
+      'POST',
+      `/api/quotes/${quoteId}/send`,
+      {}  // empty body required — nginx returns 400 without it
+    );
+    console.log(`Billable: Quote ${quoteId} sent to client`);
+    return result;
   }
 
   /**
